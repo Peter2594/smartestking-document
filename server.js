@@ -2,9 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const OpenAI = require('openai');
-const pdfParse = require('pdf-parse');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,23 +27,11 @@ const openai = new OpenAI({
   apiKey: process.env.GROQ_API_KEY
 });
 
-const uploadDir = process.env.VERCEL ? '/tmp' : path.join(__dirname, 'uploads');
-if (!process.env.VERCEL && !fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: uploadDir,
-  filename: (req, file, cb) => {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, unique + path.extname(file.originalname));
-  }
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
-    const allowed = ['.pdf', '.txt'];
     const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) {
+    if (['.pdf', '.txt'].includes(ext)) {
       cb(null, true);
     } else {
       cb(new Error('只支援 PDF 和 TXT 檔案'));
@@ -61,18 +47,16 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     return res.status(400).json({ error: '請上傳檔案' });
   }
 
-  const filePath = req.file.path;
-
   try {
     const ext = path.extname(req.file.originalname).toLowerCase();
     let fileContent = '';
 
     if (ext === '.pdf') {
-      const dataBuffer = fs.readFileSync(filePath);
-      const pdfData = await pdfParse(dataBuffer);
+      const pdfParse = require('pdf-parse');
+      const pdfData = await pdfParse(req.file.buffer);
       fileContent = pdfData.text;
     } else {
-      fileContent = fs.readFileSync(filePath, 'utf-8');
+      fileContent = req.file.buffer.toString('utf-8');
     }
 
     if (!fileContent.trim()) {
@@ -88,11 +72,8 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     });
     const summary = result.choices[0].message.content;
 
-    fs.unlinkSync(filePath);
-
     res.json({ summary });
   } catch (err) {
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     console.error('分析錯誤：', err.message);
     res.status(500).json({ error: '分析失敗：' + err.message });
   }
