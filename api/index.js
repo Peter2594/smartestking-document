@@ -47,9 +47,10 @@ async function callAI(messages) {
   const providers = [
     { name: 'Groq', key: process.env.GROQ_API_KEY, base: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
     { name: 'Cerebras', key: process.env.CEREBRAS_API_KEY, base: 'https://api.cerebras.ai/v1', model: 'llama-3.3-70b' },
+    { name: 'Gemini', key: process.env.GEMINI_API_KEY, base: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.0-flash' },
   ].filter(function(p) { return p.key; });
 
-  if (providers.length === 0) throw new Error('未設定任何 API Key，請在 Vercel 環境變數加入 GROQ_API_KEY');
+  if (providers.length === 0) throw new Error('未設定任何 API Key，請在 Vercel 環境變數加入 GROQ_API_KEY、CEREBRAS_API_KEY 或 GEMINI_API_KEY');
 
   for (const p of providers) {
     try {
