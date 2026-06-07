@@ -267,17 +267,21 @@
       finally { btn.disabled = false; }
     });
 
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
     function renderQuiz(qs) {
       const letters = ['A','B','C','D'];
       document.getElementById('q-questions').innerHTML = qs.map((q, i) => `
         <div class="question-block" id="qb${i}">
-          <div class="question-text"><span class="q-num">${i+1}.</span>${q.question}</div>
+          <div class="question-text"><span class="q-num">${i+1}.</span>${esc(q.question)}</div>
           <div class="options">${q.options.map((opt, j) => `
             <label class="opt-label" id="ql${i}_${j}">
-              <input type="radio" name="q${i}" value="${letters[j]}" onchange="selectOpt(${i},${j})"> ${opt}
+              <input type="radio" name="q${i}" value="${letters[j]}" onchange="selectOpt(${i},${j})"> ${esc(opt)}
             </label>`).join('')}
           </div>
-          <div class="explanation" id="qe${i}">${q.explanation}</div>
+          <div class="explanation" id="qe${i}">${esc(q.explanation)}</div>
         </div>`).join('');
       document.getElementById('q-submit').style.display = 'block';
     }

@@ -16,7 +16,8 @@ const QUIZ_INSTRUCTION = `你是一個出題專家。根據提供的文件內容
 - 每題必須有4個選項，以 A. B. C. D. 開頭
 - answer 只填單一字母 A、B、C 或 D
 - 問題考驗對文件內容的理解，難易度均衡
-- explanation 用一到兩句話解釋`;
+- explanation 用一到兩句話解釋
+- 所有數學與物理符號必須使用 Unicode 字元（如 α β γ δ θ λ μ π σ φ ω Δ Σ ∫ ∂ √ ∞ ≠ ≤ ≥ ± × ÷ ²  ³），禁止在 JSON 字串中使用 LaTeX 反斜線語法（如 \\alpha \\frac \\int 等）`;
 
 const SYSTEM_INSTRUCTION = `你是一個名為 smartestking 的頂級文件分析與重點摘要專家。
 你擁有分析各類文件的能力，包括學術論文、商業報告、技術文件、法律文件等。
@@ -55,7 +56,9 @@ async function callAI(messages) {
       const client = new OpenAI({ baseURL: p.base, apiKey: p.key });
       const result = await client.chat.completions.create({ model: p.model, messages: messages });
       console.log('使用 ' + p.name + ' 成功');
-      return result.choices[0].message.content;
+      const content = result.choices?.[0]?.message?.content;
+      if (!content) throw new Error(p.name + ' 回傳空結果');
+      return content;
     } catch (err) {
       console.warn(p.name + ' 失敗，嘗試下一個...');
       if (p === providers[providers.length - 1]) throw err;
@@ -79,7 +82,7 @@ app.post('/upload', upload.single('file'), async function(req, res) {
     const ext = path.extname(req.file.originalname).toLowerCase();
     let fileContent = '';
     if (ext === '.pdf') {
-      const pdfParse = require('pdf-parse');
+      const pdfParse = require('pdf-parse/lib/pdf-parse.js');
       const pdfData = await pdfParse(req.file.buffer);
       fileContent = pdfData.text;
     } else {
@@ -103,7 +106,7 @@ app.post('/quiz', upload.single('file'), async function(req, res) {
     const ext = path.extname(req.file.originalname).toLowerCase();
     let fileContent = '';
     if (ext === '.pdf') {
-      const pdfParse = require('pdf-parse');
+      const pdfParse = require('pdf-parse/lib/pdf-parse.js');
       const pdfData = await pdfParse(req.file.buffer);
       fileContent = pdfData.text;
     } else {
@@ -120,6 +123,10 @@ app.post('/quiz', upload.single('file'), async function(req, res) {
     console.error('出題錯誤：', err.message);
     res.status(500).json({ error: '出題失敗：' + err.message });
   }
+});
+
+app.use((err, req, res, next) => {
+  res.status(400).json({ error: err.message || '請求錯誤' });
 });
 
 module.exports = app;
