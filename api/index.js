@@ -59,7 +59,9 @@ async function callGemini(key, model, messages) {
 async function callAI(messages, preferredProvider) {
   let providers = [
     { name: 'Groq', key: process.env.GROQ_API_KEY, base: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
+    { name: 'SambaNova', key: process.env.SAMBANOVA_API_KEY, base: 'https://api.sambanova.ai/v1', model: 'Meta-Llama-3.3-70B-Instruct' },
     { name: 'Cerebras', key: process.env.CEREBRAS_API_KEY, base: 'https://api.cerebras.ai/v1', model: 'llama-3.3-70b' },
+    { name: 'OpenRouter', key: process.env.OPENROUTER_API_KEY, base: 'https://openrouter.ai/api/v1', model: 'meta-llama/llama-3.3-70b-instruct:free', headers: { 'HTTP-Referer': 'https://smartestking-document.vercel.app', 'X-Title': 'SmartestKing' } },
     { name: 'Gemini', key: process.env.GEMINI_API_KEY, model: 'gemini-2.0-flash' },
   ].filter(function(p) { return p.key; });
 
@@ -77,7 +79,7 @@ async function callAI(messages, preferredProvider) {
       if (p.name === 'Gemini') {
         content = await callGemini(p.key, p.model, messages);
       } else {
-        const client = new OpenAI({ baseURL: p.base, apiKey: p.key });
+        const client = new OpenAI({ baseURL: p.base, apiKey: p.key, defaultHeaders: p.headers || {} });
         const result = await client.chat.completions.create({ model: p.model, messages: messages });
         content = result.choices?.[0]?.message?.content;
       }
