@@ -43,11 +43,24 @@ function extractQuizJSON(text) {
   return JSON.parse(jsonrepair(text.slice(start)));
 }
 
+async function callGemini(key, model, messages) {
+  const { GoogleGenerativeAI } = require('@google/generative-ai');
+  const genAI = new GoogleGenerativeAI(key);
+  const systemMsg = messages.find(m => m.role === 'system');
+  const userMsg = messages.find(m => m.role === 'user');
+  const geminiModel = genAI.getGenerativeModel({
+    model: model,
+    systemInstruction: systemMsg ? systemMsg.content : undefined,
+  });
+  const result = await geminiModel.generateContent(userMsg.content);
+  return result.response.text();
+}
+
 async function callAI(messages, preferredProvider) {
   let providers = [
     { name: 'Groq', key: process.env.GROQ_API_KEY, base: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
     { name: 'Cerebras', key: process.env.CEREBRAS_API_KEY, base: 'https://api.cerebras.ai/v1', model: 'llama-3.3-70b' },
-    { name: 'Gemini', key: process.env.GEMINI_API_KEY, base: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-1.5-flash' },
+    { name: 'Gemini', key: process.env.GEMINI_API_KEY, model: 'gemini-2.0-flash' },
   ].filter(function(p) { return p.key; });
 
   if (preferredProvider && preferredProvider !== 'auto') {
@@ -60,11 +73,16 @@ async function callAI(messages, preferredProvider) {
 
   for (const p of providers) {
     try {
-      const client = new OpenAI({ baseURL: p.base, apiKey: p.key });
-      const result = await client.chat.completions.create({ model: p.model, messages: messages });
-      console.log('使用 ' + p.name + ' 成功');
-      const content = result.choices?.[0]?.message?.content;
+      let content;
+      if (p.name === 'Gemini') {
+        content = await callGemini(p.key, p.model, messages);
+      } else {
+        const client = new OpenAI({ baseURL: p.base, apiKey: p.key });
+        const result = await client.chat.completions.create({ model: p.model, messages: messages });
+        content = result.choices?.[0]?.message?.content;
+      }
       if (!content) throw new Error(p.name + ' 回傳空結果');
+      console.log('使用 ' + p.name + ' 成功');
       return content;
     } catch (err) {
       console.warn(p.name + ' 失敗：' + (err.status || err.message));
