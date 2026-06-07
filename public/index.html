@@ -86,6 +86,17 @@
     .markdown-body pre { background: #12121a; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 1em 0; }
     .markdown-body blockquote { border-left: 3px solid #a78bfa; padding-left: 16px; color: #888; margin: 0.8em 0; }
 
+    .instructions-box { margin-top: 16px; }
+    .instructions-box label { font-size: 0.82rem; color: #888; display: block; margin-bottom: 6px; }
+    .instructions-textarea {
+      width: 100%; background: #12121a; border: 1px solid #2a2a38;
+      border-radius: 8px; color: #e2e2e8; padding: 10px 12px;
+      font-size: 0.88rem; font-family: inherit; resize: vertical;
+      min-height: 60px; outline: none; line-height: 1.5;
+    }
+    .instructions-textarea::placeholder { color: #555; }
+    .instructions-textarea:focus { border-color: #a78bfa; }
+
     .model-bar {
       display: flex; align-items: center; gap: 10px;
       margin-bottom: 20px; width: 100%; max-width: 720px;
@@ -202,6 +213,11 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         <span id="q-fname"></span>
       </div>
+      <div class="instructions-box">
+        <label for="q-instructions">出題方向（選填）</label>
+        <textarea class="instructions-textarea" id="q-instructions"
+          placeholder="例如：著重在第三章的內容、難度偏難、多出計算題、針對某個概念出題…"></textarea>
+      </div>
       <button class="btn-primary" id="q-btn" disabled>生成考題</button>
       <div class="status" id="q-status"></div>
     </div>
@@ -279,6 +295,7 @@
       st.innerHTML = '<span class="spinner"></span>生成考題中，請稍候...'; st.className = 'status';
       const fd = new FormData(); fd.append('file', f);
       fd.append('provider', document.getElementById('model-select').value);
+      fd.append('instructions', document.getElementById('q-instructions').value.trim());
       try {
         const res = await fetch('/quiz', { method: 'POST', body: fd });
         const data = await res.json();

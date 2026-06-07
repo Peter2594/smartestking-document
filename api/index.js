@@ -146,9 +146,13 @@ app.post('/quiz', upload.single('file'), async function(req, res) {
     const trimmed = fileContent.trim();
     if (trimmed.length < 30) return res.status(400).json({ error: '無法讀取此 PDF 的文字內容。可能是掃描版（圖片）PDF 或數學符號為圖形格式。請改用「文字版」PDF，或將文件內容複製貼上成 .txt 檔後再上傳。' });
     const content = trimmed.length > 20000 ? trimmed.slice(0, 20000) : trimmed;
+    const instructions = (req.body.instructions || '').trim();
+    const userPrompt = instructions
+      ? `請根據以下文件內容出選擇題。\n\n出題方向：${instructions}\n\n文件內容：\n${content}`
+      : `請根據以下文件內容出選擇題：\n\n${content}`;
     const raw = await callAI([
       { role: 'system', content: QUIZ_INSTRUCTION },
-      { role: 'user', content: '請根據以下文件內容出選擇題：\n\n' + content }
+      { role: 'user', content: userPrompt }
     ], req.body.provider);
     const quiz = extractQuizJSON(raw);
     if (!Array.isArray(quiz.questions) || quiz.questions.length === 0) {
