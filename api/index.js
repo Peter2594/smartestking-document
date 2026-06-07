@@ -115,7 +115,7 @@ app.post('/upload', upload.single('file'), async function(req, res) {
     }
     const trimmed = fileContent.trim();
     if (trimmed.length < 30) return res.status(400).json({ error: '無法讀取此 PDF 的文字內容。可能是掃描版（圖片）PDF 或數學符號為圖形格式。請改用「文字版」PDF，或將文件內容複製貼上成 .txt 檔後再上傳。' });
-    const content = trimmed.length > 60000 ? trimmed.slice(0, 60000) : trimmed;
+    const content = trimmed.length > 20000 ? trimmed.slice(0, 20000) : trimmed;
     const summary = await callAI([
       { role: 'system', content: SYSTEM_INSTRUCTION },
       { role: 'user', content: '請分析以下文件並提供詳細的重點摘要：\n\n' + content }
@@ -123,9 +123,9 @@ app.post('/upload', upload.single('file'), async function(req, res) {
     res.json({ summary: summary });
   } catch (err) {
     console.error('分析錯誤：', err.message);
-    const is429 = err.status === 429;
+    const is429 = err.status === 429 || err.message?.includes('429') || err.message?.includes('RESOURCE_EXHAUSTED');
     const msg = is429
-      ? (err.message?.includes('no body') ? 'AI 模型不支援或 API Key 無權限，請切換其他模型' : '目前 AI 服務請求量過高（Rate Limit），請稍等 30 秒後再試，或切換其他模型')
+      ? '目前 AI 服務請求量過高（Rate Limit），請稍等 1 分鐘後再試，或切換其他模型'
       : '分析失敗：' + err.message;
     res.status(err.status === 429 ? 429 : 500).json({ error: msg });
   }
@@ -145,7 +145,7 @@ app.post('/quiz', upload.single('file'), async function(req, res) {
     }
     const trimmed = fileContent.trim();
     if (trimmed.length < 30) return res.status(400).json({ error: '無法讀取此 PDF 的文字內容。可能是掃描版（圖片）PDF 或數學符號為圖形格式。請改用「文字版」PDF，或將文件內容複製貼上成 .txt 檔後再上傳。' });
-    const content = trimmed.length > 60000 ? trimmed.slice(0, 60000) : trimmed;
+    const content = trimmed.length > 20000 ? trimmed.slice(0, 20000) : trimmed;
     const raw = await callAI([
       { role: 'system', content: QUIZ_INSTRUCTION },
       { role: 'user', content: '請根據以下文件內容出選擇題：\n\n' + content }
@@ -158,9 +158,9 @@ app.post('/quiz', upload.single('file'), async function(req, res) {
     res.json(quiz);
   } catch (err) {
     console.error('出題錯誤：', err.message);
-    const is429 = err.status === 429;
+    const is429 = err.status === 429 || err.message?.includes('429') || err.message?.includes('RESOURCE_EXHAUSTED');
     const msg = is429
-      ? (err.message?.includes('no body') ? 'AI 模型不支援或 API Key 無權限，請切換其他模型' : '目前 AI 服務請求量過高（Rate Limit），請稍等 30 秒後再試，或切換其他模型')
+      ? '目前 AI 服務請求量過高（Rate Limit），請稍等 1 分鐘後再試，或切換其他模型'
       : '出題失敗：' + err.message;
     res.status(err.status === 429 ? 429 : 500).json({ error: msg });
   }
