@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "AI-powered document analysis",
   "main": "server.js",
-  "engines": { "node": "24.x" },
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
@@ -11,6 +13,7 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "jsonrepair": "^3.14.0",
     "multer": "^2.1.1",
     "openai": "^6.42.0",
     "pdf-parse": "^1.1.1"
