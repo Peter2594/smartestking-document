@@ -135,6 +135,7 @@ app.post('/quiz', upload.single('file'), async function(req, res) {
     if (!Array.isArray(quiz.questions) || quiz.questions.length === 0) {
       throw new Error('AI 未能生成有效題目，請重試');
     }
+    quiz.questions = quiz.questions.filter(q => q.question && Array.isArray(q.options) && q.options.length > 0);
     res.json(quiz);
   } catch (err) {
     console.error('出題錯誤：', err.message);
