@@ -3,306 +3,319 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SmartestKing — 文件分析</title>
+  <title>SmartestKing — AI 文件工具</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0f0f13;
-      color: #e2e2e8;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 48px 16px;
+      background: #0f0f13; color: #e2e2e8;
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; padding: 48px 16px;
     }
-
-    header {
-      text-align: center;
-      margin-bottom: 48px;
-    }
-
+    header { text-align: center; margin-bottom: 32px; }
     header h1 {
-      font-size: 2.4rem;
-      font-weight: 800;
+      font-size: 2.4rem; font-weight: 800;
       background: linear-gradient(135deg, #a78bfa, #60a5fa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      letter-spacing: -0.5px;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
+    header p { margin-top: 8px; color: #888; font-size: 1rem; }
 
-    header p {
-      margin-top: 8px;
-      color: #888;
-      font-size: 1rem;
+    .tabs {
+      display: flex; gap: 4px; background: #1a1a24;
+      border: 1px solid #2a2a38; border-radius: 12px;
+      padding: 6px; margin-bottom: 24px;
     }
+    .tab {
+      padding: 9px 28px; border: none; border-radius: 8px;
+      background: transparent; color: #888;
+      font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .tab.active { background: linear-gradient(135deg, #7c3aed, #2563eb); color: #fff; }
+    .tab:hover:not(.active) { color: #ccc; }
+
+    .section { display: none; width: 100%; max-width: 720px; }
+    .section.active { display: block; }
 
     .card {
-      width: 100%;
-      max-width: 720px;
-      background: #1a1a24;
-      border: 1px solid #2a2a38;
-      border-radius: 16px;
-      padding: 32px;
-      margin-bottom: 24px;
+      background: #1a1a24; border: 1px solid #2a2a38;
+      border-radius: 16px; padding: 32px; margin-bottom: 24px;
     }
-
-    #drop-zone {
-      border: 2px dashed #3a3a50;
-      border-radius: 12px;
-      padding: 48px 24px;
-      text-align: center;
-      cursor: pointer;
+    .drop-zone {
+      border: 2px dashed #3a3a50; border-radius: 12px;
+      padding: 48px 24px; text-align: center; cursor: pointer;
       transition: border-color 0.2s, background 0.2s;
-      position: relative;
     }
-
-    #drop-zone.drag-over {
-      border-color: #a78bfa;
-      background: rgba(167, 139, 250, 0.05);
+    .drop-zone.drag-over { border-color: #a78bfa; background: rgba(167,139,250,0.05); }
+    .drop-zone svg { width: 48px; height: 48px; color: #555; margin-bottom: 12px; }
+    .drop-zone p { color: #888; font-size: 0.95rem; }
+    .drop-zone strong { color: #a78bfa; }
+    .file-info {
+      margin-top: 16px; padding: 12px 16px; background: #12121a;
+      border-radius: 8px; font-size: 0.85rem; color: #a78bfa;
+      display: none; align-items: center; gap: 8px;
     }
-
-    #drop-zone svg {
-      width: 48px;
-      height: 48px;
-      color: #555;
-      margin-bottom: 12px;
-    }
-
-    #drop-zone p {
-      color: #888;
-      font-size: 0.95rem;
-    }
-
-    #drop-zone strong {
-      color: #a78bfa;
-    }
-
-    #file-input {
-      display: none;
-    }
-
-    #file-info {
-      margin-top: 16px;
-      padding: 12px 16px;
-      background: #12121a;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      color: #a78bfa;
-      display: none;
-      align-items: center;
-      gap: 8px;
-    }
-
-    #file-info.visible { display: flex; }
-
-    #analyze-btn {
-      margin-top: 24px;
-      width: 100%;
-      padding: 14px;
-      font-size: 1rem;
-      font-weight: 700;
-      color: #fff;
+    .file-info.visible { display: flex; }
+    .btn-primary {
+      margin-top: 24px; width: 100%; padding: 14px;
+      font-size: 1rem; font-weight: 700; color: #fff;
       background: linear-gradient(135deg, #7c3aed, #2563eb);
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
+      border: none; border-radius: 10px; cursor: pointer;
       transition: opacity 0.2s, transform 0.1s;
     }
-
-    #analyze-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-    #analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-    #status {
-      text-align: center;
-      font-size: 0.9rem;
-      color: #888;
-      margin-top: 16px;
-      min-height: 20px;
-    }
-
-    #status.error { color: #f87171; }
-
-    #result-card {
-      display: none;
-      width: 100%;
-      max-width: 720px;
-    }
-
-    #result-card.visible { display: block; }
-
-    #result-card h2 {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 20px;
-    }
-
-    .markdown-body {
-      line-height: 1.75;
-      color: #d4d4dc;
-      font-size: 0.95rem;
-    }
-
-    .markdown-body h1, .markdown-body h2 {
-      color: #a78bfa;
-      margin: 1.4em 0 0.6em;
-      font-weight: 700;
-    }
-
-    .markdown-body h3 { color: #60a5fa; margin: 1.2em 0 0.5em; }
-
-    .markdown-body strong { color: #f0f0f5; }
-
-    .markdown-body ul, .markdown-body ol {
-      padding-left: 1.5em;
-      margin: 0.6em 0;
-    }
-
-    .markdown-body li { margin: 0.3em 0; }
-
-    .markdown-body p { margin: 0.7em 0; }
-
-    .markdown-body code {
-      background: #12121a;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 0.85em;
-      color: #60a5fa;
-    }
-
-    .markdown-body pre {
-      background: #12121a;
-      padding: 16px;
-      border-radius: 8px;
-      overflow-x: auto;
-      margin: 1em 0;
-    }
-
-    .markdown-body blockquote {
-      border-left: 3px solid #a78bfa;
-      padding-left: 16px;
-      color: #888;
-      margin: 0.8em 0;
-    }
-
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .status { text-align: center; font-size: 0.9rem; color: #888; margin-top: 16px; min-height: 20px; }
+    .status.error { color: #f87171; }
     .spinner {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid #555;
-      border-top-color: #a78bfa;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid #555; border-top-color: #a78bfa;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 8px;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .markdown-body { line-height: 1.75; color: #d4d4dc; font-size: 0.95rem; }
+    .markdown-body h1, .markdown-body h2 { color: #a78bfa; margin: 1.4em 0 0.6em; font-weight: 700; }
+    .markdown-body h3 { color: #60a5fa; margin: 1.2em 0 0.5em; }
+    .markdown-body strong { color: #f0f0f5; }
+    .markdown-body ul, .markdown-body ol { padding-left: 1.5em; margin: 0.6em 0; }
+    .markdown-body li { margin: 0.3em 0; }
+    .markdown-body p { margin: 0.7em 0; }
+    .markdown-body code { background: #12121a; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #60a5fa; }
+    .markdown-body pre { background: #12121a; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 1em 0; }
+    .markdown-body blockquote { border-left: 3px solid #a78bfa; padding-left: 16px; color: #888; margin: 0.8em 0; }
+
+    .section-label { font-size: 0.85rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+    .question-block {
+      background: #12121a; border: 1px solid #2a2a38;
+      border-radius: 12px; padding: 20px; margin-bottom: 14px; transition: border-color 0.3s;
+    }
+    .question-block.correct { border-color: #059669; }
+    .question-block.wrong { border-color: #dc2626; }
+    .question-text { font-size: 0.95rem; font-weight: 600; margin-bottom: 14px; }
+    .q-num { color: #a78bfa; margin-right: 6px; }
+    .options { display: flex; flex-direction: column; gap: 8px; }
+    .opt-label {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: 8px;
+      border: 1px solid #2a2a38; cursor: pointer;
+      transition: background 0.15s, border-color 0.15s; font-size: 0.9rem;
+    }
+    .opt-label:hover { background: #1a1a24; border-color: #a78bfa; }
+    .opt-label input[type="radio"] { accent-color: #a78bfa; width: 16px; height: 16px; flex-shrink: 0; }
+    .opt-label.selected { background: rgba(167,139,250,0.1); border-color: #a78bfa; }
+    .opt-label.correct-opt { background: rgba(5,150,105,0.15); border-color: #059669; color: #6ee7b7; }
+    .opt-label.wrong-opt { background: rgba(220,38,38,0.15); border-color: #dc2626; color: #fca5a5; }
+    .explanation {
+      margin-top: 12px; padding: 10px 14px;
+      background: rgba(96,165,250,0.08); border-left: 3px solid #60a5fa;
+      border-radius: 0 6px 6px 0; font-size: 0.85rem; color: #93c5fd; display: none;
+    }
+    .explanation.visible { display: block; }
+    .score-banner {
+      text-align: center; padding: 24px;
+      background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(37,99,235,0.15));
+      border: 1px solid #7c3aed; border-radius: 12px; margin-bottom: 20px;
+    }
+    .score-num { font-size: 2.8rem; font-weight: 800; color: #a78bfa; }
+    .score-sub { font-size: 0.9rem; color: #888; margin-top: 6px; }
+    .btn-submit {
+      display: block; margin: 0 auto; padding: 12px 48px;
+      font-size: 1rem; font-weight: 700; color: #fff;
+      background: linear-gradient(135deg, #059669, #0d9488);
+      border: none; border-radius: 10px; cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-submit:hover { opacity: 0.85; }
   </style>
 </head>
 <body>
 
   <header>
     <h1>SmartestKing</h1>
-    <p>頂級 AI 文件分析 · 重點摘要專家</p>
+    <p>頂級 AI 文件工具</p>
   </header>
 
-  <div class="card">
-    <div id="drop-zone" onclick="document.getElementById('file-input').click()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.632-8.664 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <p>拖曳檔案到此處，或 <strong>點擊上傳</strong></p>
-      <p style="margin-top:6px;font-size:0.8rem;color:#555;">支援 PDF、TXT · 最大 20MB</p>
-    </div>
-    <input type="file" id="file-input" accept=".pdf,.txt" />
+  <nav class="tabs">
+    <button class="tab active" onclick="switchTab('analyze')">文件分析</button>
+    <button class="tab" onclick="switchTab('quiz')">出考題</button>
+  </nav>
 
-    <div id="file-info">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <span id="file-name"></span>
+  <!-- 文件分析 -->
+  <div id="analyze-section" class="section active">
+    <div class="card">
+      <div class="drop-zone" id="a-drop" onclick="document.getElementById('a-input').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.632-8.664 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p>拖曳檔案到此處，或 <strong>點擊上傳</strong></p>
+        <p style="margin-top:6px;font-size:0.8rem;color:#555;">支援 PDF、TXT · 最大 20MB</p>
+      </div>
+      <input type="file" id="a-input" accept=".pdf,.txt" style="display:none" />
+      <div class="file-info" id="a-info">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span id="a-fname"></span>
+      </div>
+      <button class="btn-primary" id="a-btn" disabled>開始分析</button>
+      <div class="status" id="a-status"></div>
     </div>
-
-    <button id="analyze-btn" disabled>開始分析</button>
-    <div id="status"></div>
+    <div class="card" id="a-result" style="display:none">
+      <div class="section-label">分析結果</div>
+      <div id="a-content" class="markdown-body"></div>
+    </div>
   </div>
 
-  <div class="card" id="result-card">
-    <h2>分析結果</h2>
-    <div id="result-content" class="markdown-body"></div>
+  <!-- 出考題 -->
+  <div id="quiz-section" class="section">
+    <div class="card">
+      <div class="drop-zone" id="q-drop" onclick="document.getElementById('q-input').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.632-8.664 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p>拖曳檔案到此處，或 <strong>點擊上傳</strong></p>
+        <p style="margin-top:6px;font-size:0.8rem;color:#555;">支援 PDF、TXT · 最大 20MB</p>
+      </div>
+      <input type="file" id="q-input" accept=".pdf,.txt" style="display:none" />
+      <div class="file-info" id="q-info">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span id="q-fname"></span>
+      </div>
+      <button class="btn-primary" id="q-btn" disabled>生成考題</button>
+      <div class="status" id="q-status"></div>
+    </div>
+    <div class="card" id="q-card" style="display:none">
+      <div class="section-label">選擇題</div>
+      <div id="q-questions"></div>
+      <button class="btn-submit" id="q-submit">提交答案</button>
+    </div>
+    <div class="card" id="q-result" style="display:none">
+      <div class="score-banner">
+        <div class="score-num" id="q-score">0 / 0</div>
+        <div class="score-sub">答題結果</div>
+      </div>
+      <button class="btn-primary" style="margin-top:0" onclick="retakeQuiz()">重新作答</button>
+    </div>
   </div>
 
   <script>
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('file-input');
-    const fileInfo = document.getElementById('file-info');
-    const fileName = document.getElementById('file-name');
-    const analyzeBtn = document.getElementById('analyze-btn');
-    const statusEl = document.getElementById('status');
-    const resultCard = document.getElementById('result-card');
-    const resultContent = document.getElementById('result-content');
-
-    let selectedFile = null;
-
-    function setFile(file) {
-      if (!file) return;
-      const ext = file.name.split('.').pop().toLowerCase();
-      if (!['pdf', 'txt'].includes(ext)) {
-        showStatus('只支援 PDF 和 TXT 檔案', true);
-        return;
-      }
-      selectedFile = file;
-      fileName.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
-      fileInfo.classList.add('visible');
-      analyzeBtn.disabled = false;
-      showStatus('');
+    function switchTab(t) {
+      document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', (t === 'analyze') === (i === 0)));
+      document.getElementById('analyze-section').classList.toggle('active', t === 'analyze');
+      document.getElementById('quiz-section').classList.toggle('active', t === 'quiz');
     }
 
-    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-    dropZone.addEventListener('drop', e => {
-      e.preventDefault();
-      dropZone.classList.remove('drag-over');
-      setFile(e.dataTransfer.files[0]);
-    });
-
-    fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
-
-    analyzeBtn.addEventListener('click', async () => {
-      if (!selectedFile) return;
-
-      analyzeBtn.disabled = true;
-      resultCard.classList.remove('visible');
-      showStatus('<span class="spinner"></span>分析中，請稍候...');
-
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-
-      try {
-        const res = await fetch('/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-
-        if (!res.ok) throw new Error(data.error || '伺服器錯誤');
-
-        resultContent.innerHTML = marked.parse(data.summary);
-        resultCard.classList.add('visible');
-        showStatus('');
-        resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } catch (err) {
-        showStatus(err.message, true);
-      } finally {
-        analyzeBtn.disabled = false;
+    function makeZone(dropId, inputId, infoId, nameId, btnId) {
+      const drop = document.getElementById(dropId), input = document.getElementById(inputId);
+      const info = document.getElementById(infoId), nameEl = document.getElementById(nameId);
+      const btn = document.getElementById(btnId);
+      let file = null;
+      function set(f) {
+        if (!f) return;
+        if (!['pdf','txt'].includes(f.name.split('.').pop().toLowerCase())) { alert('只支援 PDF 和 TXT'); return; }
+        file = f;
+        nameEl.textContent = f.name + ' (' + (f.size/1024).toFixed(1) + ' KB)';
+        info.classList.add('visible');
+        btn.disabled = false;
       }
+      drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+      drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+      drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('drag-over'); set(e.dataTransfer.files[0]); });
+      input.addEventListener('change', () => set(input.files[0]));
+      return { get: () => file };
+    }
+
+    // 分析
+    const az = makeZone('a-drop','a-input','a-info','a-fname','a-btn');
+    document.getElementById('a-btn').addEventListener('click', async () => {
+      const f = az.get(); if (!f) return;
+      const btn = document.getElementById('a-btn'), st = document.getElementById('a-status'), rc = document.getElementById('a-result');
+      btn.disabled = true; rc.style.display = 'none';
+      st.innerHTML = '<span class="spinner"></span>分析中，請稍候...'; st.className = 'status';
+      const fd = new FormData(); fd.append('file', f);
+      try {
+        const res = await fetch('/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '伺服器錯誤');
+        document.getElementById('a-content').innerHTML = marked.parse(data.summary);
+        rc.style.display = 'block'; st.innerHTML = '';
+        rc.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (e) { st.innerHTML = e.message; st.className = 'status error'; }
+      finally { btn.disabled = false; }
     });
 
-    function showStatus(msg, isError = false) {
-      statusEl.innerHTML = msg;
-      statusEl.className = isError ? 'error' : '';
+    // 考題
+    const qz = makeZone('q-drop','q-input','q-info','q-fname','q-btn');
+    let quizData = null;
+
+    document.getElementById('q-btn').addEventListener('click', async () => {
+      const f = qz.get(); if (!f) return;
+      const btn = document.getElementById('q-btn'), st = document.getElementById('q-status');
+      btn.disabled = true;
+      document.getElementById('q-card').style.display = 'none';
+      document.getElementById('q-result').style.display = 'none';
+      st.innerHTML = '<span class="spinner"></span>生成考題中，請稍候...'; st.className = 'status';
+      const fd = new FormData(); fd.append('file', f);
+      try {
+        const res = await fetch('/quiz', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '伺服器錯誤');
+        quizData = data.questions;
+        renderQuiz(quizData);
+        document.getElementById('q-card').style.display = 'block'; st.innerHTML = '';
+        document.getElementById('q-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (e) { st.innerHTML = e.message; st.className = 'status error'; }
+      finally { btn.disabled = false; }
+    });
+
+    function renderQuiz(qs) {
+      const letters = ['A','B','C','D'];
+      document.getElementById('q-questions').innerHTML = qs.map((q, i) => `
+        <div class="question-block" id="qb${i}">
+          <div class="question-text"><span class="q-num">${i+1}.</span>${q.question}</div>
+          <div class="options">${q.options.map((opt, j) => `
+            <label class="opt-label" id="ql${i}_${j}">
+              <input type="radio" name="q${i}" value="${letters[j]}" onchange="selectOpt(${i},${j})"> ${opt}
+            </label>`).join('')}
+          </div>
+          <div class="explanation" id="qe${i}">${q.explanation}</div>
+        </div>`).join('');
+      document.getElementById('q-submit').style.display = 'block';
+    }
+
+    function selectOpt(qi, oi) {
+      for (let j = 0; j < 4; j++) document.getElementById(`ql${qi}_${j}`)?.classList.toggle('selected', j === oi);
+    }
+
+    document.getElementById('q-submit').addEventListener('click', () => {
+      if (!quizData) return;
+      const letters = ['A','B','C','D'];
+      let score = 0;
+      quizData.forEach((q, i) => {
+        const sel = document.querySelector(`input[name="q${i}"]:checked`);
+        const ansIdx = letters.indexOf(q.answer);
+        const block = document.getElementById(`qb${i}`);
+        if (sel) {
+          const selIdx = letters.indexOf(sel.value);
+          const ok = sel.value === q.answer;
+          if (ok) score++;
+          block.classList.add(ok ? 'correct' : 'wrong');
+          document.getElementById(`ql${i}_${selIdx}`)?.classList.add(ok ? 'correct-opt' : 'wrong-opt');
+          if (!ok) document.getElementById(`ql${i}_${ansIdx}`)?.classList.add('correct-opt');
+        } else {
+          block.classList.add('wrong');
+          document.getElementById(`ql${i}_${ansIdx}`)?.classList.add('correct-opt');
+        }
+        document.getElementById(`qe${i}`).classList.add('visible');
+        document.querySelectorAll(`input[name="q${i}"]`).forEach(r => r.disabled = true);
+      });
+      document.getElementById('q-score').textContent = `${score} / ${quizData.length}`;
+      document.getElementById('q-result').style.display = 'block';
+      document.getElementById('q-submit').style.display = 'none';
+      document.getElementById('q-result').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    function retakeQuiz() {
+      if (quizData) { renderQuiz(quizData); document.getElementById('q-result').style.display = 'none'; }
     }
   </script>
 </body>
