@@ -89,7 +89,7 @@ app.post('/upload', upload.single('file'), async function(req, res) {
     } else {
       fileContent = req.file.buffer.toString('utf-8');
     }
-    if (!fileContent.trim()) return res.status(400).json({ error: '檔案內容為空或無法讀取文字' });
+    if (fileContent.trim().length < 30) return res.status(400).json({ error: '無法讀取此 PDF 的文字內容。可能是掃描版（圖片）PDF 或數學符號為圖形格式。請改用「文字版」PDF，或將文件內容複製貼上成 .txt 檔後再上傳。' });
     const summary = await callAI([
       { role: 'system', content: SYSTEM_INSTRUCTION },
       { role: 'user', content: '請分析以下文件並提供詳細的重點摘要：\n\n' + fileContent }
@@ -113,7 +113,7 @@ app.post('/quiz', upload.single('file'), async function(req, res) {
     } else {
       fileContent = req.file.buffer.toString('utf-8');
     }
-    if (!fileContent.trim()) return res.status(400).json({ error: '檔案內容為空或無法讀取文字' });
+    if (fileContent.trim().length < 30) return res.status(400).json({ error: '無法讀取此 PDF 的文字內容。可能是掃描版（圖片）PDF 或數學符號為圖形格式。請改用「文字版」PDF，或將文件內容複製貼上成 .txt 檔後再上傳。' });
     const raw = await callAI([
       { role: 'system', content: QUIZ_INSTRUCTION },
       { role: 'user', content: '請根據以下文件內容出選擇題：\n\n' + fileContent }
