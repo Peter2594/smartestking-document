@@ -47,7 +47,7 @@ async function callAI(messages, preferredProvider) {
   let providers = [
     { name: 'Groq', key: process.env.GROQ_API_KEY, base: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
     { name: 'Cerebras', key: process.env.CEREBRAS_API_KEY, base: 'https://api.cerebras.ai/v1', model: 'llama-3.3-70b' },
-    { name: 'Gemini', key: process.env.GEMINI_API_KEY, base: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.0-flash' },
+    { name: 'Gemini', key: process.env.GEMINI_API_KEY, base: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-1.5-flash' },
   ].filter(function(p) { return p.key; });
 
   if (preferredProvider && preferredProvider !== 'auto') {
@@ -105,8 +105,9 @@ app.post('/upload', upload.single('file'), async function(req, res) {
     res.json({ summary: summary });
   } catch (err) {
     console.error('分析錯誤：', err.message);
-    const msg = err.status === 429
-      ? '目前 AI 服務請求量過高（Rate Limit），請稍等 30 秒後再試，或切換其他模型'
+    const is429 = err.status === 429;
+    const msg = is429
+      ? (err.message?.includes('no body') ? 'AI 模型不支援或 API Key 無權限，請切換其他模型' : '目前 AI 服務請求量過高（Rate Limit），請稍等 30 秒後再試，或切換其他模型')
       : '分析失敗：' + err.message;
     res.status(err.status === 429 ? 429 : 500).json({ error: msg });
   }
@@ -139,8 +140,9 @@ app.post('/quiz', upload.single('file'), async function(req, res) {
     res.json(quiz);
   } catch (err) {
     console.error('出題錯誤：', err.message);
-    const msg = err.status === 429
-      ? '目前 AI 服務請求量過高（Rate Limit），請稍等 30 秒後再試，或切換其他模型'
+    const is429 = err.status === 429;
+    const msg = is429
+      ? (err.message?.includes('no body') ? 'AI 模型不支援或 API Key 無權限，請切換其他模型' : '目前 AI 服務請求量過高（Rate Limit），請稍等 30 秒後再試，或切換其他模型')
       : '出題失敗：' + err.message;
     res.status(err.status === 429 ? 429 : 500).json({ error: msg });
   }
