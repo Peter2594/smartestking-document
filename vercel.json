@@ -1,11 +1,10 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/server.js" }
+    { "source": "/upload", "destination": "/api/index" },
+    { "source": "/quiz", "destination": "/api/index" }
   ],
   "functions": {
-    "server.js": {
-      "maxDuration": 30
-    }
+    "api/index.js": { "maxDuration": 30 }
   }
 }
