@@ -262,7 +262,7 @@
         document.getElementById('a-content').innerHTML = marked.parse(data.summary);
         rc.style.display = 'block'; st.innerHTML = '';
         rc.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } catch (e) { st.innerHTML = e.message; st.className = 'status error'; }
+      } catch (e) { st.textContent = e.message; st.className = 'status error'; }
       finally { btn.disabled = false; }
     });
 
@@ -284,10 +284,11 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '伺服器錯誤');
         quizData = data.questions;
+        if (!quizData || !quizData.length) throw new Error('AI 未能生成有效題目，請重試');
         renderQuiz(quizData);
-        document.getElementById('q-card').style.display = 'block'; st.innerHTML = '';
+        document.getElementById('q-card').style.display = 'block'; st.textContent = '';
         document.getElementById('q-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } catch (e) { st.innerHTML = e.message; st.className = 'status error'; }
+      } catch (e) { st.textContent = e.message; st.className = 'status error'; }
       finally { btn.disabled = false; }
     });
 

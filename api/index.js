@@ -67,7 +67,7 @@ async function callAI(messages, preferredProvider) {
       if (!content) throw new Error(p.name + ' 回傳空結果');
       return content;
     } catch (err) {
-      console.warn(p.name + ' 失敗，嘗試下一個...');
+      console.warn(p.name + ' 失敗：' + (err.status || err.message));
       if (p === providers[providers.length - 1]) throw err;
     }
   }
@@ -95,15 +95,20 @@ app.post('/upload', upload.single('file'), async function(req, res) {
     } else {
       fileContent = req.file.buffer.toString('utf-8');
     }
-    if (fileContent.trim().length < 30) return res.status(400).json({ error: '無法讀取此 PDF 的文字內容。可能是掃描版（圖片）PDF 或數學符號為圖形格式。請改用「文字版」PDF，或將文件內容複製貼上成 .txt 檔後再上傳。' });
+    const trimmed = fileContent.trim();
+    if (trimmed.length < 30) return res.status(400).json({ error: '無法讀取此 PDF 的文字內容。可能是掃描版（圖片）PDF 或數學符號為圖形格式。請改用「文字版」PDF，或將文件內容複製貼上成 .txt 檔後再上傳。' });
+    const content = trimmed.length > 60000 ? trimmed.slice(0, 60000) : trimmed;
     const summary = await callAI([
       { role: 'system', content: SYSTEM_INSTRUCTION },
-      { role: 'user', content: '請分析以下文件並提供詳細的重點摘要：\n\n' + fileContent }
+      { role: 'user', content: '請分析以下文件並提供詳細的重點摘要：\n\n' + content }
     ], req.body.provider);
     res.json({ summary: summary });
   } catch (err) {
     console.error('分析錯誤：', err.message);
-    res.status(500).json({ error: '分析失敗：' + err.message });
+    const msg = err.status === 429
+      ? '目前 AI 服務請求量過高（Rate Limit），請稍等 30 秒後再試，或切換其他模型'
+      : '分析失敗：' + err.message;
+    res.status(err.status === 429 ? 429 : 500).json({ error: msg });
   }
 });
 
@@ -119,21 +124,30 @@ app.post('/quiz', upload.single('file'), async function(req, res) {
     } else {
       fileContent = req.file.buffer.toString('utf-8');
     }
-    if (fileContent.trim().length < 30) return res.status(400).json({ error: '無法讀取此 PDF 的文字內容。可能是掃描版（圖片）PDF 或數學符號為圖形格式。請改用「文字版」PDF，或將文件內容複製貼上成 .txt 檔後再上傳。' });
+    const trimmed = fileContent.trim();
+    if (trimmed.length < 30) return res.status(400).json({ error: '無法讀取此 PDF 的文字內容。可能是掃描版（圖片）PDF 或數學符號為圖形格式。請改用「文字版」PDF，或將文件內容複製貼上成 .txt 檔後再上傳。' });
+    const content = trimmed.length > 60000 ? trimmed.slice(0, 60000) : trimmed;
     const raw = await callAI([
       { role: 'system', content: QUIZ_INSTRUCTION },
-      { role: 'user', content: '請根據以下文件內容出選擇題：\n\n' + fileContent }
+      { role: 'user', content: '請根據以下文件內容出選擇題：\n\n' + content }
     ], req.body.provider);
     const quiz = extractQuizJSON(raw);
+    if (!Array.isArray(quiz.questions) || quiz.questions.length === 0) {
+      throw new Error('AI 未能生成有效題目，請重試');
+    }
     res.json(quiz);
   } catch (err) {
     console.error('出題錯誤：', err.message);
-    res.status(500).json({ error: '出題失敗：' + err.message });
+    const msg = err.status === 429
+      ? '目前 AI 服務請求量過高（Rate Limit），請稍等 30 秒後再試，或切換其他模型'
+      : '出題失敗：' + err.message;
+    res.status(err.status === 429 ? 429 : 500).json({ error: msg });
   }
 });
 
 app.use((err, req, res, next) => {
-  res.status(400).json({ error: err.message || '請求錯誤' });
+  const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+  res.status(status).json({ error: err.message || '請求錯誤' });
 });
 
 module.exports = app;
