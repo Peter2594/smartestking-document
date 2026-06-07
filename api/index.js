@@ -43,12 +43,18 @@ function extractQuizJSON(text) {
   return JSON.parse(jsonrepair(text.slice(start)));
 }
 
-async function callAI(messages) {
-  const providers = [
+async function callAI(messages, preferredProvider) {
+  let providers = [
     { name: 'Groq', key: process.env.GROQ_API_KEY, base: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
     { name: 'Cerebras', key: process.env.CEREBRAS_API_KEY, base: 'https://api.cerebras.ai/v1', model: 'llama-3.3-70b' },
     { name: 'Gemini', key: process.env.GEMINI_API_KEY, base: 'https://generativelanguage.googleapis.com/v1beta/openai/', model: 'gemini-2.0-flash' },
   ].filter(function(p) { return p.key; });
+
+  if (preferredProvider && preferredProvider !== 'auto') {
+    const picked = providers.find(p => p.name === preferredProvider);
+    if (!picked) throw new Error(preferredProvider + ' 的 API Key 尚未設定');
+    providers = [picked];
+  }
 
   if (providers.length === 0) throw new Error('未設定任何 API Key，請在 Vercel 環境變數加入 GROQ_API_KEY、CEREBRAS_API_KEY 或 GEMINI_API_KEY');
 
@@ -93,7 +99,7 @@ app.post('/upload', upload.single('file'), async function(req, res) {
     const summary = await callAI([
       { role: 'system', content: SYSTEM_INSTRUCTION },
       { role: 'user', content: '請分析以下文件並提供詳細的重點摘要：\n\n' + fileContent }
-    ]);
+    ], req.body.provider);
     res.json({ summary: summary });
   } catch (err) {
     console.error('分析錯誤：', err.message);
@@ -117,7 +123,7 @@ app.post('/quiz', upload.single('file'), async function(req, res) {
     const raw = await callAI([
       { role: 'system', content: QUIZ_INSTRUCTION },
       { role: 'user', content: '請根據以下文件內容出選擇題：\n\n' + fileContent }
-    ]);
+    ], req.body.provider);
     const quiz = extractQuizJSON(raw);
     res.json(quiz);
   } catch (err) {

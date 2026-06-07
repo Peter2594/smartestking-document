@@ -86,6 +86,18 @@
     .markdown-body pre { background: #12121a; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 1em 0; }
     .markdown-body blockquote { border-left: 3px solid #a78bfa; padding-left: 16px; color: #888; margin: 0.8em 0; }
 
+    .model-bar {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 20px; width: 100%; max-width: 720px;
+    }
+    .model-bar label { font-size: 0.82rem; color: #888; white-space: nowrap; }
+    .model-select {
+      flex: 1; background: #1a1a24; border: 1px solid #2a2a38;
+      border-radius: 8px; color: #e2e2e8; padding: 8px 12px;
+      font-size: 0.88rem; cursor: pointer; outline: none;
+    }
+    .model-select:focus { border-color: #a78bfa; }
+
     .section-label { font-size: 0.85rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
     .question-block {
       background: #12121a; border: 1px solid #2a2a38;
@@ -140,6 +152,16 @@
     <button class="tab active" onclick="switchTab('analyze')">文件分析</button>
     <button class="tab" onclick="switchTab('quiz')">出考題</button>
   </nav>
+
+  <div class="model-bar">
+    <label>AI 模型</label>
+    <select class="model-select" id="model-select">
+      <option value="auto">自動（依序嘗試）</option>
+      <option value="Gemini">Gemini 2.0 Flash</option>
+      <option value="Groq">Groq — Llama 3.3 70B</option>
+      <option value="Cerebras">Cerebras — Llama 3.3 70B</option>
+    </select>
+  </div>
 
   <!-- 文件分析 -->
   <div id="analyze-section" class="section active">
@@ -232,6 +254,7 @@
       btn.disabled = true; rc.style.display = 'none';
       st.innerHTML = '<span class="spinner"></span>分析中，請稍候...'; st.className = 'status';
       const fd = new FormData(); fd.append('file', f);
+      fd.append('provider', document.getElementById('model-select').value);
       try {
         const res = await fetch('/upload', { method: 'POST', body: fd });
         const data = await res.json();
@@ -255,6 +278,7 @@
       document.getElementById('q-result').style.display = 'none';
       st.innerHTML = '<span class="spinner"></span>生成考題中，請稍候...'; st.className = 'status';
       const fd = new FormData(); fd.append('file', f);
+      fd.append('provider', document.getElementById('model-select').value);
       try {
         const res = await fetch('/quiz', { method: 'POST', body: fd });
         const data = await res.json();
