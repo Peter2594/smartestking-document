@@ -252,6 +252,7 @@
       function set(f) {
         if (!f) return;
         if (!['pdf','txt'].includes(f.name.split('.').pop().toLowerCase())) { alert('只支援 PDF 和 TXT'); return; }
+        if (f.size > 20 * 1024 * 1024) { alert('檔案大小不能超過 20MB'); return; }
         file = f;
         nameEl.textContent = f.name + ' (' + (f.size/1024).toFixed(1) + ' KB)';
         info.classList.add('visible');
@@ -346,7 +347,7 @@
         const block = document.getElementById(`qb${i}`);
         if (sel) {
           const selIdx = letters.indexOf(sel.value);
-          const ok = sel.value === q.answer;
+          const ok = (sel.value || '').trim() === (q.answer || '').trim();
           if (ok) score++;
           block.classList.add(ok ? 'correct' : 'wrong');
           document.getElementById(`ql${i}_${selIdx}`)?.classList.add(ok ? 'correct-opt' : 'wrong-opt');
