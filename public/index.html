@@ -150,6 +150,23 @@
       border: none; border-radius: 10px; cursor: pointer; transition: opacity 0.2s;
     }
     .btn-submit:hover { opacity: 0.85; }
+
+    .result-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .result-bar .section-label { margin-bottom: 0; }
+    .export-btns { display: flex; gap: 8px; }
+    .export-btn {
+      padding: 6px 14px; font-size: 0.8rem; font-weight: 600;
+      background: #2a2a38; border: 1px solid #3a3a50;
+      color: #e2e2e8; border-radius: 6px; cursor: pointer; transition: all 0.2s;
+    }
+    .export-btn:hover { background: #3a3a50; border-color: #a78bfa; }
+    .history-item { padding: 14px 16px; border-bottom: 1px solid #2a2a38; }
+    .history-item:last-child { border-bottom: none; }
+    .history-item-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .history-item-header:hover .history-filename { color: #a78bfa; }
+    .history-filename { font-weight: 600; color: #e2e2e8; transition: color 0.15s; }
+    .history-meta { font-size: 0.78rem; color: #666; margin-top: 3px; }
+    .history-detail { display: none; border-top: 1px solid #2a2a38; padding-top: 12px; margin-top: 12px; }
   </style>
 </head>
 <body>
@@ -162,6 +179,7 @@
   <nav class="tabs">
     <button class="tab active" onclick="switchTab('analyze')">文件分析</button>
     <button class="tab" onclick="switchTab('quiz')">出考題</button>
+    <button class="tab" onclick="switchTab('history')">歷史記錄</button>
   </nav>
 
   <div class="model-bar">
@@ -195,7 +213,14 @@
       <div class="status" id="a-status"></div>
     </div>
     <div class="card" id="a-result" style="display:none">
-      <div class="section-label">分析結果</div>
+      <div class="result-bar">
+        <div class="section-label">分析結果</div>
+        <div class="export-btns">
+          <button class="export-btn" id="export-md">Markdown</button>
+          <button class="export-btn" id="export-html">HTML</button>
+          <button class="export-btn" id="export-print">列印</button>
+        </div>
+      </div>
       <div id="a-content" class="markdown-body"></div>
     </div>
   </div>
@@ -237,11 +262,26 @@
     </div>
   </div>
 
+  <!-- 歷史記錄 -->
+  <div id="history-section" class="section">
+    <div class="card">
+      <div class="result-bar">
+        <div class="section-label">本地歷史記錄</div>
+        <button class="export-btn" onclick="clearAllHistory()">清除全部</button>
+      </div>
+      <div id="history-list"><p style="color:#666;text-align:center;padding:24px">暫無記錄</p></div>
+      <div id="storage-info" style="margin-top:12px;font-size:0.78rem;color:#555;text-align:right"></div>
+    </div>
+  </div>
+
+  <script src="db.js"></script>
+  <script src="export.js"></script>
   <script>
     function switchTab(t) {
-      document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', (t === 'analyze') === (i === 0)));
-      document.getElementById('analyze-section').classList.toggle('active', t === 'analyze');
-      document.getElementById('quiz-section').classList.toggle('active', t === 'quiz');
+      const ids = ['analyze', 'quiz', 'history'];
+      document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', t === ids[i]));
+      ids.forEach(id => document.getElementById(id + '-section').classList.toggle('active', t === id));
+      if (t === 'history') loadHistory();
     }
 
     function makeZone(dropId, inputId, infoId, nameId, btnId) {
@@ -266,6 +306,7 @@
     }
 
     // 分析
+    let lastSummaryContent = '';
     const az = makeZone('a-drop','a-input','a-info','a-fname','a-btn');
     document.getElementById('a-btn').addEventListener('click', async () => {
       const f = az.get(); if (!f) return;
@@ -278,12 +319,18 @@
         const res = await fetch('/upload', { method: 'POST', body: fd });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '伺服器錯誤');
+        lastSummaryContent = data.summary;
         document.getElementById('a-content').innerHTML = marked.parse(data.summary);
         rc.style.display = 'block'; st.innerHTML = '';
         rc.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        db.save({ filename: f.name, filesize: f.size, type: 'summary', content: data.summary, provider: document.getElementById('model-select').value }).catch(() => {});
       } catch (e) { st.textContent = e.message; st.className = 'status error'; }
       finally { btn.disabled = false; }
     });
+
+    document.getElementById('export-md').addEventListener('click', () => ExportManager.markdown(lastSummaryContent, '分析結果'));
+    document.getElementById('export-html').addEventListener('click', () => ExportManager.html(lastSummaryContent, '分析結果'));
+    document.getElementById('export-print').addEventListener('click', () => ExportManager.print(document.getElementById('a-content')));
 
     // 考題
     const qz = makeZone('q-drop','q-input','q-info','q-fname','q-btn');
@@ -308,6 +355,7 @@
         renderQuiz(quizData);
         document.getElementById('q-card').style.display = 'block'; st.textContent = '';
         document.getElementById('q-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        db.save({ filename: f.name, filesize: f.size, type: 'quiz', content: quizData.length + '題', provider: document.getElementById('model-select').value }).catch(() => {});
       } catch (e) { st.textContent = e.message; st.className = 'status error'; }
       finally { btn.disabled = false; }
     }
@@ -365,8 +413,51 @@
       document.getElementById('q-result').scrollIntoView({ behavior: 'smooth' });
     });
 
-    function retakeQuiz() {
-      generateQuiz();
+    function retakeQuiz() { generateQuiz(); }
+
+    // 歷史記錄
+    function fmtDate(ts) {
+      return new Date(ts).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function loadHistory() {
+      const list = await db.getAll().catch(() => []);
+      const el = document.getElementById('history-list');
+      if (!list.length) { el.innerHTML = '<p style="color:#666;text-align:center;padding:24px">暫無記錄</p>'; return; }
+      el.innerHTML = list.map(a => `
+        <div class="history-item">
+          <div class="history-item-header" onclick="toggleDetail(${a.id})">
+            <div>
+              <div class="history-filename">${esc(a.filename)}</div>
+              <div class="history-meta">${fmtDate(a.timestamp)} · ${a.type === 'quiz' ? '考題 ' + esc(a.content) : '分析'} · ${esc(a.provider || '-')}</div>
+            </div>
+            <button class="export-btn" onclick="event.stopPropagation();delHistory(${a.id})">刪除</button>
+          </div>
+          <div class="history-detail" id="hd-${a.id}">
+            ${a.type === 'summary' ? '<div class="markdown-body" style="font-size:0.88rem;margin-top:4px">' + marked.parse(a.content || '') + '</div>' : '<p style="color:#888;font-size:0.85rem;padding-top:8px">考題記錄不含題目內容</p>'}
+          </div>
+        </div>`).join('');
+      if (navigator.storage?.estimate) {
+        navigator.storage.estimate().then(e => {
+          document.getElementById('storage-info').textContent = `本地已使用 ${(e.usage/1024/1024).toFixed(1)} MB`;
+        }).catch(() => {});
+      }
+    }
+
+    function toggleDetail(id) {
+      const el = document.getElementById('hd-' + id);
+      if (el) el.style.display = el.style.display === 'block' ? 'none' : 'block';
+    }
+
+    async function delHistory(id) {
+      await db.delete(id).catch(() => {});
+      loadHistory();
+    }
+
+    async function clearAllHistory() {
+      if (!confirm('確定要清除所有記錄？此操作無法恢復。')) return;
+      await db.clear().catch(() => {});
+      loadHistory();
     }
   </script>
 </body>
