@@ -233,7 +233,7 @@
         <div class="score-num" id="q-score">0 / 0</div>
         <div class="score-sub">答題結果</div>
       </div>
-      <button class="btn-primary" style="margin-top:0" onclick="retakeQuiz()">重新作答</button>
+      <button class="btn-primary" style="margin-top:0" onclick="retakeQuiz()">換新題目</button>
     </div>
   </div>
 
@@ -288,7 +288,7 @@
     const qz = makeZone('q-drop','q-input','q-info','q-fname','q-btn');
     let quizData = null;
 
-    document.getElementById('q-btn').addEventListener('click', async () => {
+    async function generateQuiz() {
       const f = qz.get(); if (!f) return;
       const btn = document.getElementById('q-btn'), st = document.getElementById('q-status');
       btn.disabled = true;
@@ -309,7 +309,9 @@
         document.getElementById('q-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (e) { st.textContent = e.message; st.className = 'status error'; }
       finally { btn.disabled = false; }
-    });
+    }
+
+    document.getElementById('q-btn').addEventListener('click', generateQuiz);
 
     function esc(s) {
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -363,7 +365,7 @@
     });
 
     function retakeQuiz() {
-      if (quizData) { renderQuiz(quizData); document.getElementById('q-result').style.display = 'none'; }
+      generateQuiz();
     }
   </script>
 </body>

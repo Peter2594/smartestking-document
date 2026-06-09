@@ -7,7 +7,7 @@ const { jsonrepair } = require('jsonrepair');
 
 const app = express();
 
-const QUIZ_INSTRUCTION = `你是一個出題專家。根據提供的文件內容，生成 6 到 8 題繁體中文選擇題。
+const QUIZ_INSTRUCTION = `你是一個出題專家。根據提供的文件內容，生成 10 題繁體中文選擇題。
 
 你必須只輸出純 JSON，不要加任何說明文字或 Markdown 標記，格式如下：
 {"questions":[{"question":"問題文字","options":["A. 選項一","B. 選項二","C. 選項三","D. 選項四"],"answer":"A","explanation":"說明正確答案原因"}]}
